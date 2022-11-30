@@ -1,7 +1,7 @@
+from time import time
 import numpy as np
 from scipy.optimize import minimize_scalar
 from sklearn.tree import DecisionTreeRegressor
-from time import time
 
 
 class RandomForestMSE:
@@ -23,6 +23,14 @@ class RandomForestMSE:
         if feature_subsample_size is None:
             self.feature_subsample_size = 1 / 3
         self.trees_params = trees_parameters
+        # help params
+        self.val_rmse_history = []
+        self.train_rmse_history = []
+        self.dt = []
+        self.trees = []
+        self.idxs = []
+        self.w = []
+        self.features = []
 
     def fit(self, X, y, X_val=None, y_val=None):
         """
@@ -94,8 +102,8 @@ class RandomForestMSE:
             Array of size n_objects
         """
         pred = np.zeros(X.shape[1])
-        for i in range(len(self.trees)):
-            pred_i = self.trees[i].predict(X[self.idxs[i], self.features[i]])
+        for tree, idx, features in zip(self.trees, self.idxs, self.features):
+            pred_i = tree.predict(X[idx, features])
             pred += pred_i
         return pred / len(self.trees)
 
@@ -122,6 +130,13 @@ class GradientBoostingMSE:
         if feature_subsample_size is None:
             self.feature_subsample_size = 1 / 3
         self.trees_params = trees_parameters
+        # help params
+        self.val_rmse_history = []
+        self.train_rmse_history = []
+        self.dt = []
+        self.trees = []
+        self.w = []
+        self.features = []
 
     def fit(self, X, y, X_val=None, y_val=None):
         """
@@ -135,12 +150,10 @@ class GradientBoostingMSE:
         self.train_rmse_history = []
         self.dt = []
         t0 = time()
-        n_objects, n_features = X.shape
+        n_features = X.shape[1]
         n_subfeatures = int(n_features * self.feature_subsample_size)
-        # n_subset = int((1 - 1 / np.e) * n_objects)
         self.trees = []
         self.w = []
-        # self.idxs = []
         self.features = []
         z = np.zeros_like(y)
         if X_val is not None:
@@ -162,15 +175,13 @@ class GradientBoostingMSE:
                 self.w.append(1)
                 # val score
                 if X_val is not None:
-                    pred_val += self.w[-1] * \
-                                tree.predict(X_val[:, sub_features])
+                    pred_val += self.w[-1] * tree.predict(X_val[:, sub_features])
 
                     self.val_rmse_history.append(
                         np.sqrt(np.mean(np.square(pred_val - y_val)))
                     )
                 # train score
-                pred_train += self.w[-1] * \
-                              tree.predict(X[:, sub_features])
+                pred_train += self.w[-1] * tree.predict(X[:, sub_features])
 
                 self.train_rmse_history.append(
                     np.sqrt(np.mean(np.square(pred_train - y)))
@@ -180,23 +191,20 @@ class GradientBoostingMSE:
             tree.fit(X[:, sub_features], s)
             self.dt.append(time() - t0)
             preds = tree.predict(X[:, sub_features])
-            loss = lambda w: np.mean(np.square(z + w * preds - y))
-            res = minimize_scalar(loss)
+            res = minimize_scalar(lambda w, z, preds: np.mean(np.square(z + w * preds - y)), args=(z, preds))
             w = self.learning_rate * res.x
             z += w * preds
             self.w.append(w)
             self.trees.append(tree)
             # val score
             if X_val is not None:
-                pred_val += self.w[-1] * \
-                            tree.predict(X_val[:, sub_features])
+                pred_val += self.w[-1] * tree.predict(X_val[:, sub_features])
 
                 self.val_rmse_history.append(
                     np.sqrt(np.mean(np.square(pred_val - y_val)))
                 )
             # train score
-            pred_train += self.w[-1] * \
-                          tree.predict(X[:, sub_features])
+            pred_train += self.w[-1] * tree.predict(X[:, sub_features])
 
             self.train_rmse_history.append(
                 np.sqrt(np.mean(np.square(pred_train - y)))
@@ -212,7 +220,7 @@ class GradientBoostingMSE:
             Array of size n_objects
         """
         pred = np.zeros(X.shape[1])
-        for i in range(len(self.trees)):
-            pred_i = self.trees[i].predict(X[:, self.features[i]])
-            pred += pred_i * self.w[i]
+        for tree, features, w in zip(self.trees, self.features, self.w):
+            pred_i = tree.predict(X[:, features])
+            pred += pred_i * w
         return pred
