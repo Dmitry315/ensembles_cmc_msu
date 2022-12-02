@@ -28,9 +28,6 @@ class RandomForestMSE:
         self.train_rmse_history = []
         self.dt = []
         self.trees = []
-        self.idxs = []
-        self.w = []
-        self.features = []
 
     def fit(self, X, y, X_val=None, y_val=None):
         """
@@ -48,46 +45,39 @@ class RandomForestMSE:
         self.train_rmse_history = []
         self.dt = []
         t0 = time()
-        n_objects, n_features = X.shape
-        n_subfeatures = int(n_features * self.feature_subsample_size)
+        n_objects = X.shape[0]
         n_subset = int((1 - 1 / np.e) * n_objects)
         self.trees = []
-        self.idxs = []
-        self.features = []
         if X_val is not None:
             pred_val = np.zeros_like(y_val)
         pred_train = np.zeros_like(y)
         for i in range(1, self.n_estimators + 1):
-            tree = DecisionTreeRegressor(max_depth=self.max_depth, **self.trees_params)
+            tree = DecisionTreeRegressor(max_depth=self.max_depth, max_features=self.feature_subsample_size,
+                                         **self.trees_params)
             # random patch
             idx = np.arange(n_objects)
             np.random.shuffle(idx)
             sub_idx = np.isin(np.arange(n_objects), idx[:n_subset])
-            self.idxs.append(sub_idx)
 
-            features = np.arange(n_features)
-            np.random.shuffle(features)
-            sub_features = np.isin(np.arange(n_features), features[:n_subfeatures])
-            self.features.append(sub_features)
             # train model
-            tree.fit(X[sub_idx][:, sub_features], y[sub_idx])
+            tree.fit(X[sub_idx], y[sub_idx])
             self.dt.append(time() - t0)
             # val score
             if X_val is not None:
-                if i == 0:
-                    pred_val += tree.predict(X_val[:, sub_features])
+                if i == 1:
+                    pred_val += tree.predict(X_val)
                 else:
                     pred_val *= (i - 1) / i
-                    pred_val += tree.predict(X_val[:, sub_features]) / i
+                    pred_val += tree.predict(X_val) / i
                 self.val_rmse_history.append(
                     np.sqrt(np.mean(np.square(pred_val - y_val)))
                 )
             # train score
             if i == 0:
-                pred_train += tree.predict(X[:, sub_features])
+                pred_train += tree.predict(X)
             else:
                 pred_train *= (i - 1) / i
-                pred_train += tree.predict(X[:, sub_features]) / i
+                pred_train += tree.predict(X) / i
             self.train_rmse_history.append(
                 np.sqrt(np.mean(np.square(pred_train - y)))
             )
@@ -102,9 +92,8 @@ class RandomForestMSE:
             Array of size n_objects
         """
         pred = np.zeros(X.shape[1])
-        for tree, idx, features in zip(self.trees, self.idxs, self.features):
-            pred_i = tree.predict(X[idx, features])
-            pred += pred_i
+        for tree in self.trees:
+            pred += tree.predict(X)
         return pred / len(self.trees)
 
 
@@ -136,7 +125,6 @@ class GradientBoostingMSE:
         self.dt = []
         self.trees = []
         self.w = []
-        self.features = []
 
     def fit(self, X, y, X_val=None, y_val=None):
         """
@@ -150,47 +138,40 @@ class GradientBoostingMSE:
         self.train_rmse_history = []
         self.dt = []
         t0 = time()
-        n_features = X.shape[1]
-        n_subfeatures = int(n_features * self.feature_subsample_size)
+
         self.trees = []
         self.w = []
-        self.features = []
         z = np.zeros_like(y)
         if X_val is not None:
             pred_val = np.zeros_like(y_val)
         pred_train = np.zeros_like(y)
         for i in range(self.n_estimators):
-            tree = DecisionTreeRegressor(max_depth=self.max_depth, **self.trees_params)
-
-            features = np.arange(n_features)
-            np.random.shuffle(features)
-            sub_features = np.isin(np.arange(n_features), features[:n_subfeatures])
-            self.features.append(sub_features)
-
+            tree = DecisionTreeRegressor(max_depth=self.max_depth, max_features=self.feature_subsample_size,
+                                         **self.trees_params)
             if i == 0:  # initial approximation
-                tree.fit(X[:, sub_features], y)
+                tree.fit(X, y)
                 self.dt.append(time() - t0)
-                z += tree.predict(X[:, sub_features])
+                z += tree.predict(X)
                 self.trees.append(tree)
                 self.w.append(1)
                 # val score
                 if X_val is not None:
-                    pred_val += self.w[-1] * tree.predict(X_val[:, sub_features])
+                    pred_val += self.w[-1] * tree.predict(X_val)
 
                     self.val_rmse_history.append(
                         np.sqrt(np.mean(np.square(pred_val - y_val)))
                     )
                 # train score
-                pred_train += self.w[-1] * tree.predict(X[:, sub_features])
+                pred_train += self.w[-1] * tree.predict(X)
 
                 self.train_rmse_history.append(
                     np.sqrt(np.mean(np.square(pred_train - y)))
                 )
                 continue
             s = z - y  # grad_z mse(y, z)
-            tree.fit(X[:, sub_features], s)
+            tree.fit(X, s)
             self.dt.append(time() - t0)
-            preds = tree.predict(X[:, sub_features])
+            preds = tree.predict(X)
             res = minimize_scalar(lambda w, z, preds: np.mean(np.square(z + w * preds - y)), args=(z, preds))
             w = self.learning_rate * res.x
             z += w * preds
@@ -198,13 +179,13 @@ class GradientBoostingMSE:
             self.trees.append(tree)
             # val score
             if X_val is not None:
-                pred_val += self.w[-1] * tree.predict(X_val[:, sub_features])
+                pred_val += self.w[-1] * tree.predict(X_val)
 
                 self.val_rmse_history.append(
                     np.sqrt(np.mean(np.square(pred_val - y_val)))
                 )
             # train score
-            pred_train += self.w[-1] * tree.predict(X[:, sub_features])
+            pred_train += self.w[-1] * tree.predict(X)
 
             self.train_rmse_history.append(
                 np.sqrt(np.mean(np.square(pred_train - y)))
@@ -220,7 +201,6 @@ class GradientBoostingMSE:
             Array of size n_objects
         """
         pred = np.zeros(X.shape[1])
-        for tree, features, w in zip(self.trees, self.features, self.w):
-            pred_i = tree.predict(X[:, features])
-            pred += pred_i * w
+        for tree, w in zip(self.trees, self.w):
+            pred += tree.predict(X) * w
         return pred
