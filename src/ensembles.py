@@ -46,7 +46,6 @@ class RandomForestMSE:
         self.dt = []
         t0 = time()
         n_objects = X.shape[0]
-        n_subset = int((1 - 1 / np.e) * n_objects)
         self.trees = []
         if X_val is not None:
             pred_val = np.zeros_like(y_val)
@@ -54,13 +53,11 @@ class RandomForestMSE:
         for i in range(1, self.n_estimators + 1):
             tree = DecisionTreeRegressor(max_depth=self.max_depth, max_features=self.feature_subsample_size,
                                          **self.trees_params)
-            # random patch
-            idx = np.arange(n_objects)
-            np.random.shuffle(idx)
-            sub_idx = np.isin(np.arange(n_objects), idx[:n_subset])
+            # random subsample
+            idx = np.unique(np.random.randint(0, n_objects, n_objects))
 
             # train model
-            tree.fit(X[sub_idx], y[sub_idx])
+            tree.fit(X[idx], y[idx])
             self.dt.append(time() - t0)
             # val score
             if X_val is not None:
@@ -138,18 +135,21 @@ class GradientBoostingMSE:
         self.train_rmse_history = []
         self.dt = []
         t0 = time()
-
+        n_objects = X.shape[0]
         self.trees = []
         self.w = []
-        z = np.zeros_like(y)
+        z = np.zeros_like(y)  # train predict
         if X_val is not None:
             pred_val = np.zeros_like(y_val)
-        pred_train = np.zeros_like(y)
         for i in range(self.n_estimators):
             tree = DecisionTreeRegressor(max_depth=self.max_depth, max_features=self.feature_subsample_size,
                                          **self.trees_params)
+
+            # random subsample
+            idx = np.unique(np.random.randint(0, n_objects, n_objects))
+
             if i == 0:  # initial approximation
-                tree.fit(X, y)
+                tree.fit(X[idx], y[idx])
                 self.dt.append(time() - t0)
                 z += tree.predict(X)
                 self.trees.append(tree)
@@ -162,20 +162,18 @@ class GradientBoostingMSE:
                         np.sqrt(np.mean(np.square(pred_val - y_val)))
                     )
                 # train score
-                pred_train += self.w[-1] * tree.predict(X)
-
                 self.train_rmse_history.append(
-                    np.sqrt(np.mean(np.square(pred_train - y)))
+                    np.sqrt(np.mean(np.square(z - y)))
                 )
                 continue
-            s = z - y  # grad_z mse(y, z)
-            tree.fit(X, s)
+            s = z[idx] - y[idx]  # grad_z mse(y, z)
+            tree.fit(X[idx], s)
             self.dt.append(time() - t0)
             preds = tree.predict(X)
             res = minimize_scalar(lambda w, z, preds: np.mean(np.square(z + w * preds - y)), args=(z, preds))
-            w = self.learning_rate * res.x
-            z += w * preds
-            self.w.append(w)
+            self.w.append(self.learning_rate * res.x)
+            z += self.w[-1] * preds
+
             self.trees.append(tree)
             # val score
             if X_val is not None:
@@ -185,10 +183,8 @@ class GradientBoostingMSE:
                     np.sqrt(np.mean(np.square(pred_val - y_val)))
                 )
             # train score
-            pred_train += self.w[-1] * tree.predict(X)
-
             self.train_rmse_history.append(
-                np.sqrt(np.mean(np.square(pred_train - y)))
+                np.sqrt(np.mean(np.square(z - y)))
             )
 
     def predict(self, X):
