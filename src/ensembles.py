@@ -54,7 +54,7 @@ class RandomForestMSE:
             tree = DecisionTreeRegressor(max_depth=self.max_depth, max_features=self.feature_subsample_size,
                                          **self.trees_params)
             # random subsample
-            idx = np.unique(np.random.randint(0, n_objects, n_objects))
+            idx = np.random.randint(0, n_objects, n_objects)
 
             # train model
             tree.fit(X[idx], y[idx])
@@ -146,7 +146,7 @@ class GradientBoostingMSE:
                                          **self.trees_params)
 
             # random subsample
-            idx = np.unique(np.random.randint(0, n_objects, n_objects))
+            idx = np.random.randint(0, n_objects, n_objects)
 
             if i == 0:  # initial approximation
                 tree.fit(X[idx], y[idx])
