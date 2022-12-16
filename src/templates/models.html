@@ -1,0 +1,7 @@
+{% extends 'home_wrapper.html' %}
+
+{% block content %}
+{% for i, params in models.items() %}
+    <a href="models/{{i}}" style="text-decoration:none"><div class="button">{{i}}: {{params['name']}}</div></a>
+{% endfor %}
+{% endblock content %}

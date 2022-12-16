@@ -1,0 +1,5 @@
+orange: #EDBC6D
+pink: #F76D78
+blue: #8F6EE0
+light blue: #6DEAF7
+green: #82ED68
