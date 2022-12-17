@@ -56,6 +56,12 @@
                     </div>
                 </div>
                 <div class="form-group row">
+                    {{ form.val_file.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.val_file(class="form-control form-control-lg file_load") }}
+                    </div>
+                </div>
+                <div class="form-group row">
                     {{ form.target.label(class_="col-sm-6 col-form-label") }}
                     <div class="col-sm-6">
                         {{ form.target(class="form-control")}}

@@ -47,6 +47,11 @@ class RFForm(FlaskForm):
             validators.DataRequired(message="Для обучения необходим файл"),
             FileAllowed(['csv'], message='Можно загружать только csv файлы')
         ])
+    val_file = FileField(
+        'Файл для валидации модели (не обязателен)',
+        [
+            FileAllowed(['csv'], message='Можно загружать только csv файлы')
+        ])
     target = StringField(
         'Метка для предсказания (target)',
         [
@@ -101,6 +106,11 @@ class GBForm(FlaskForm):
             validators.DataRequired(message="Для обучения необходим файл"),
             FileAllowed(['csv'], message='Можно загружать только csv файлы')
         ])
+    val_file = FileField(
+        'Файл для валидации модели (не обязателен)',
+        [
+            FileAllowed(['csv'], message='Можно загружать только csv файлы')
+        ])
     target = StringField(
         'Метка для предсказания (target)',
         [
@@ -110,22 +120,44 @@ class GBForm(FlaskForm):
     submit = SubmitField('Иницализировать модель')
 
 
+class TestForm(FlaskForm):
+    file = FileField(
+        'Файл для тестирования модели',
+        [
+            validators.DataRequired(message="Для предсказания необходим файл"),
+            FileAllowed(['csv'], message='Можно загружать только csv файлы')
+        ])
+    submit = SubmitField('Сделать предсказание')
+
+
 def checker(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            res = func()
+            res = func(*args, **kwargs)
             return res
-        except:
+        except Exception as err:
+            print(err)
+            for f in files_to_delete:
+                try:
+                    os.remove(f)
+                except Exception:
+                    pass
+                files_to_delete.remove(f)
             abort(418)
+
+    return wrapper
+
 
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html')
 
+
 @app.errorhandler(418)
 def page_not_found(e):
     return render_template('418.html')
+
 
 def dump_model(model, path):
     with open(path, 'wb') as out_f:
@@ -138,7 +170,7 @@ def load_model(path):
     return model
 
 
-def fit_model(model, file_path, target):
+def fit_model(model, file_path, target, val_file_path):
     df = pd.read_csv(file_path)
     X = df.drop(columns=[target])
     obj_columns = X.columns[X.dtypes == object]
@@ -146,7 +178,13 @@ def fit_model(model, file_path, target):
     if 'id' in X.columns:
         X = X.drop(columns=['id'])
     y = df[target]
-    model.fit(X.values, y.values)
+    X_val = None
+    y_val = None
+    if val_file_path:
+        val_df = pd.read_csv(val_file_path)
+        X_val = val_df[X.columns].values
+        y_val = val_df[target].values
+    model.fit(X.values, y.values, X_val, y_val)
     return X.columns
 
 
@@ -157,12 +195,25 @@ def fit_save_rf_model(form, request, model_idx):
     max_depth = int(request.form["max_depth"])
     feature_subsample_size = float(request.form["feature_subsample_size"])
     filename = secure_filename(form.file.data.filename)
+    val_filename = secure_filename(form.val_file.data.filename)
+    if val_filename == '':
+        val_filename = None
+    val_files_path = None
+    if val_filename:
+        val_files_path = app.config['UPLOAD_FOLDER'] + filename
     files_path = app.config['UPLOAD_FOLDER'] + filename
     form.file.data.save(files_path)
+    if val_filename:
+        form.val_file.data.save(val_files_path)
+        files_to_delete.append(val_files_path)
+    files_to_delete.append(files_path)
 
     model = RandomForestMSE(n_estimators=n_estimators, max_depth=max_depth,
                             feature_subsample_size=feature_subsample_size)
-    features = fit_model(model, files_path, target)
+    features = fit_model(model, files_path, target, val_files_path)
+    files_to_delete.remove(files_path)
+    if val_filename:
+        files_to_delete.remove(val_files_path)
     model_path = app.config['MODELS_FOLDER'] + f'{model_idx}.pkl'
     dump_model(model, model_path)
     model_params[model_idx] = {
@@ -173,9 +224,11 @@ def fit_save_rf_model(form, request, model_idx):
         'max_depth': max_depth,
         'feature_subsample_size': feature_subsample_size,
         'path': model_path,
-        'training_file': files_path,
+        'training_file': filename,
         'features': features
     }
+    if val_filename:
+        model_params[model_idx]['val_file'] = val_filename
 
 
 def fit_save_gb_model(form, request, model_idx):
@@ -186,13 +239,26 @@ def fit_save_gb_model(form, request, model_idx):
     feature_subsample_size = float(request.form["feature_subsample_size"])
     learning_rate = float(request.form["learning_rate"])
     filename = secure_filename(form.file.data.filename)
+    val_filename = secure_filename(form.val_file.data.filename)
+    if val_filename == '':
+        val_filename = None
+    val_files_path = None
+    if val_filename:
+        val_files_path = app.config['UPLOAD_FOLDER'] + filename
     files_path = app.config['UPLOAD_FOLDER'] + filename
     form.file.data.save(files_path)
+    if val_filename:
+        form.val_file.data.save(val_files_path)
+        files_to_delete.append(val_files_path)
+    files_to_delete.append(files_path)
 
     model = GradientBoostingMSE(n_estimators=n_estimators, max_depth=max_depth,
                                 feature_subsample_size=feature_subsample_size,
                                 learning_rate=learning_rate)
-    features = fit_model(model, files_path, target)
+    features = fit_model(model, files_path, target, val_files_path)
+    files_to_delete.remove(files_path)
+    if val_filename:
+        files_to_delete.remove(val_files_path)
     model_path = app.config['MODELS_FOLDER'] + f'{model_idx}.pkl'
     dump_model(model, model_path)
     model_params[model_idx] = {
@@ -204,24 +270,31 @@ def fit_save_gb_model(form, request, model_idx):
         'feature_subsample_size': feature_subsample_size,
         'learning_rate': learning_rate,
         'path': model_path,
-        'training_file': files_path,
+        'training_file': filename,
         'features': features
     }
+    if val_filename:
+        model_params[model_idx]['val_file'] = val_filename
 
 
 @app.route('/')
 @app.route('/home')
+@checker
 def home():
     return render_template('home.html')
 
 
 @app.route('/models')
+@checker
 def models():
     return render_template('models.html', models=model_params)
 
 
 @app.route('/models/<int:idx>/edit', methods=['GET', 'POST'])
+@checker
 def edit_model(idx):
+    if idx not in model_params.keys():
+        abort(404)
     params = model_params[idx]
     model_type = params['type']
     if model_type == 'rf':
@@ -238,26 +311,68 @@ def edit_model(idx):
         return render_template('grad_boost.html', form=form, params=params)
     abort(404)
 
-@app.route('/models/<int:idx>', methods=['GET', 'POST'])
-def get_model(idx):
 
+@app.route('/download/<path:filename>', methods=['GET', 'POST'])
+def download_file(filename):
+    try:
+        directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
+        return send_from_directory(directory=directory, filename=filename)
+    except Exception:
+        abort(404)
+
+
+@app.route('/models/<int:idx>', methods=['GET', 'POST'])
+@checker
+def get_model(idx):
+    form = TestForm()
+    if idx not in model_params.keys():
+        abort(404)
     params = model_params[idx]
-    return render_template('get_model.html', params=params, idx=idx)
+    model = load_model(params['path'])
+    history = model.train_rmse_history
+    df = pd.DataFrame(history, index=range(len(history)), columns=['RMSE'])
+    df['Номер итерации'] = range(1, len(history) + 1)
+    df['Выборка'] = 'Тренировочная'
+    if 'val_file' in params.keys():
+        val_history = model.val_rmse_history
+        tmp = pd.DataFrame(val_history, index=range(len(val_history)), columns=['RMSE'])
+        tmp['Номер итерации'] = range(1, len(history) + 1)
+        tmp['Выборка'] = 'Валидационная'
+        df = pd.concat((df, tmp))
+    fig = px.line(df, x='Номер итерации', y='RMSE', color='Выборка',
+                  title='Зависимость RMSE от номера итерации')
+
+    graph = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    if form.validate_on_submit():
+        filename = secure_filename(form.file.data.filename)
+        files_path = app.config['UPLOAD_FOLDER'] + filename
+        form.file.data.save(files_path)
+        files_to_delete.append(files_path)
+        # predict
+        features = params['features']
+        target = params['target']
+        df = pd.read_csv(files_path)
+        X = df[features]
+        pred = pd.DataFrame(model.predict(X.values), index=X.index, columns=[target])
+        pred.to_csv(app.config['UPLOAD_FOLDER'] + 'predict.csv')
+        return redirect(url_for('download_file', filename='predict.csv'))
+    return render_template('get_model.html', params=params, idx=idx, graph=graph, form=form)
 
 
 @app.route('/random_forest', methods=['GET', 'POST'])
+@checker
 def random_forest():
     form = RFForm()
     if request.method == 'POST' and form.validate_on_submit():
         model_idx = app.config['MODEL_IDX']
         app.config['MODEL_IDX'] += 1
         fit_save_rf_model(form, request, model_idx)
-
         return redirect(url_for('models'))
     return render_template('random_forest.html', form=form)
 
 
 @app.route('/gradient_boosting', methods=['GET', 'POST'])
+@checker
 def grad_boost():
     form = GBForm()
     if request.method == 'POST' and form.validate_on_submit():
@@ -270,6 +385,7 @@ def grad_boost():
 
 
 @app.route('/about')
+@checker
 def about():
     return render_template('about.html')
 

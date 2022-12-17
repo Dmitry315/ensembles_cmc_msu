@@ -1,8 +1,57 @@
 {% extends 'home_wrapper.html' %}
 
 {% block content %}
+<h2>{{params['name']}}</h2>
+Параметры модели:
+{% if params['type']=='rf' %}
+    <h3>Random forest</h3>
+    Число деревьев: {{params['n_estimators']}}<br>
+    Максимальная глубина: {{params['max_depth']}}<br>
+    Доля признаков для обучения: {{params['feature_subsample_size']}}<br>
+{% endif %}
+{% if params['type']=='gb' %}
+    <h3>Gradient boosting</h3>
+    Число деревьев: {{params['n_estimators']}}<br>
+    Максимальная глубина: {{params['max_depth']}}<br>
+    Доля признаков для обучения: {{params['feature_subsample_size']}}<br>
+    Скорость обучения: {{params['learning_rate']}}<br>
+{% endif %}
+<div id="lineplot" class="lineplot"></div>
 
-Данные для вылидации
+<form action="" method="post" class="form" enctype="multipart/form-data" role="form">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        <center>
+            <div class="error">
+                {% for field, errors in form.errors.items() %}
+                    <small>
+                        {{ ', '.join(errors) }} <br>
+                    </small>
+                {% endfor %}
+            </div>
+            <div class="model_params">
+                <div class="form-group row">
+                    {{ form.file.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.file(class="form-control")}}
+                    </div>
+                </div>
+            </div>
+            {{ form.submit(class="btn btn-primary mb-2") }}
+        </center>
 
-<a href="{{idx}}/edit" style="text-decoration:none"><div class="button">edit</div></a>
+    </div>
+</form>
+
+<a href="{{ url_for('download_file', filename=params['training_file']) }}" style="text-decoration:none"><div class="button">Скачать тренировочную выборку</div></a>
+{% if params['val_file'] %}
+    <a href="{{ url_for('download_file', filename=params['val_file']) }}" style="text-decoration:none"><div class="button">Скачать валидационную выборку</div></a>
+{% endif %}
+<a href="{{idx}}/edit" style="text-decoration:none"><div class="button">Изменить</div></a>
+
+<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+<script type="text/javascript">
+    var graphs = {{graph | safe}};
+    Plotly.plot('lineplot', graphs, {});
+</script>
 {% endblock content %}
