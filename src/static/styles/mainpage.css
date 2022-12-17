@@ -1,0 +1,56 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+#content{
+    padding-left: 20%;
+    padding-right: 20%;
+}
+.sign-auth {
+    padding-left: auto;
+    padding-right: auto;
+    text-align: center;
+    margin-top: 20%;
+    border-radius: 10px;
+    background-color: #8F6EE0;
+
+}
+.tab{
+    background-color: #8F6EE0;
+    border: 0px solid black;
+    transform: translate(-20%);
+    width: 167%;
+    padding: 2%;
+    padding-left: 40%;
+    padding-right: 40%;
+    margin-bottom: 2%;
+    color: whitesmoke;
+}
+.tab a{
+    color: #000000;
+    font-weight: 900;
+    font-size: 18px;
+}
+.button {
+    background-color: #EDBC6D;
+    color: #000000;
+    font-weight: 900;
+    font-size: 18px;
+    max-width: 50%;
+    border: 1px solid black;
+    padding-top: 2%;
+    padding-bottom: 2%;
+}
+
+.error {
+    background-color: #F76D78;
+    color: #000000;
+    text-align: center;
+    width: 50%;
+    margin: 2%;
+}
+
+.file_load {
+    font-size: 16px;
+}

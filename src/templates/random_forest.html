@@ -1,0 +1,69 @@
+{% extends 'home_wrapper.html' %}
+
+{% block content %}
+<center>
+    <h1>Random Forest</h1>
+    <p> Среднее арифметическое деревьев, обученных на случайных подвыборках и признаках (random patch).</p>
+</center>
+
+<form action="" method="post" class="form" enctype="multipart/form-data" role="form">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        <center>
+            <div class="error">
+                {% for field, errors in form.errors.items() %}
+                    <small>
+                        {{ ', '.join(errors) }} <br>
+                    </small>
+                {% endfor %}
+            </div>
+            <div class="model_params">
+                <div class="form-group row">
+                    {{ form.model_name.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.model_name(class="form-control")}}
+                    </div>
+                </div>
+                <div class="form-group row">
+                    {{ form.n_estimators.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.n_estimators(class="form-control")}}
+                    </div>
+                </div>
+                <div class="form-group row">
+                    {{ form.max_depth.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.max_depth(class="form-control")}}
+                    </div>
+                </div>
+                <div class="form-group row">
+                    {{ form.feature_subsample_size.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.feature_subsample_size(class="form-control")}}
+                    </div>
+                </div>
+                <div class="form-group row">
+                    {{ form.file.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.file(class="form-control form-control-lg file_load") }}
+                    </div>
+                </div>
+                <div class="form-group row">
+                    {{ form.val_file.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.val_file(class="form-control form-control-lg file_load") }}
+                    </div>
+                </div>
+                <div class="form-group row">
+                    {{ form.target.label(class_="col-sm-6 col-form-label") }}
+                    <div class="col-sm-6">
+                        {{ form.target(class="form-control")}}
+                    </div>
+                </div>
+            </div>
+            {{ form.submit(class="btn btn-primary mb-2") }}
+        </center>
+
+    </div>
+</form>
+{% endblock content %}
