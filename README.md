@@ -10,6 +10,19 @@ predict(X, y) -> pred
 fit(X, y, X_val, y_val)<br>
 predict(X, y) -> pred
 <h2>Работа с приложением</h2>
+Готовый докер образ: https://hub.docker.com/repository/docker/dmitry315/ensembles_server/general <br>
+1) Собрать образ докера (запускать из ensembles_cmc_msu):
+
+```bash
+scripts/build.sh
+```
+
+2) Запустить приложение (запускать из ensembles_cmc_msu):
+
+```bash
+scripts/run.sh
+```
+
 <h2> Файлы </h2>
 <p>src - исходники с веб-приложением и алгоритмами.</p>
 <p>scripts - скрипты для сборки и запуска контейнера docker</p>
