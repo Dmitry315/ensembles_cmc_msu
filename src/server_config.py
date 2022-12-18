@@ -9,7 +9,6 @@ from flask import Flask, request, render_template, url_for, redirect, abort, sen
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileRequired, FileAllowed
 from wtforms import StringField, FileField, FloatField, DecimalField, SubmitField, validators
-from wtforms.fields.html5 import DecimalRangeField
 from werkzeug.utils import secure_filename
 from ensembles import RandomForestMSE, GradientBoostingMSE
 
