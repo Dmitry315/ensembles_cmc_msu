@@ -316,7 +316,7 @@ def edit_model(idx):
 def download_file(filename):
     try:
         directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
-        file_path = os.path.join(directory, filename)
+        file_path = os.path.join(directory, secure_filename(filename))
         return send_file(file_path)
     except Exception as err:
         app.logger.info(str(err))
