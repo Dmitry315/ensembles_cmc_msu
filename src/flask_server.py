@@ -137,7 +137,7 @@ def checker(func):
             res = func(*args, **kwargs)
             return res
         except Exception as err:
-            print(err)
+            app.logger.info(str(err))
             for f in files_to_delete:
                 try:
                     os.remove(f)
@@ -316,8 +316,10 @@ def edit_model(idx):
 def download_file(filename):
     try:
         directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
-        return send_from_directory(directory=directory, filename=filename)
-    except Exception:
+        file_path = os.path.join(directory, filename)
+        return send_file(file_path)
+    except Exception as err:
+        app.logger.info(str(err))
         abort(404)
 
 
@@ -392,5 +394,4 @@ def about():
 
 if __name__ == '__main__':
     # run server
-    # app.run()
-    app.run(port='8000', host='127.0.0.1', debug=True)
+    app.run(host="0.0.0.0", port="8080")
