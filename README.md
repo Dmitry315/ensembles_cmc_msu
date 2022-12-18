@@ -14,7 +14,7 @@ predict(X, y) -> pred
 0) Если возникли проблемы c разрешением 
 
 ```bash
-chmod +x scripts/build.sh <br>
+chmod +x scripts/build.sh
 chmod +x scripts/run.sh
 ```
 
