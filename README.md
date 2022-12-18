@@ -11,20 +11,21 @@ fit(X, y, X_val, y_val)<br>
 predict(X, y) -> pred
 <h2>Работа с приложением</h2>
 Готовый докер образ: https://hub.docker.com/repository/docker/dmitry315/ensembles_server/general <br>
-0) Если возникли проблемы c разрешением 
+
+1) Если возникли проблемы c разрешением 
 
 ```bash
 chmod +x scripts/build.sh
 chmod +x scripts/run.sh
 ```
 
-1) Собрать образ докера (запускать из ensembles_cmc_msu):
+2) Собрать образ докера (запускать из ensembles_cmc_msu):
 
 ```bash
 scripts/build.sh
 ```
 
-2) Запустить приложение (запускать из ensembles_cmc_msu):
+3) Запустить приложение (запускать из ensembles_cmc_msu):
 
 ```bash
 scripts/run.sh
