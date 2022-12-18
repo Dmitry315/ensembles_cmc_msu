@@ -2,7 +2,7 @@
 
 {% block content %}
 {% if not models %}
-    <h3> Пока никаких моделей нет. Создать новую можно во вкладках, соответствующих типу моделей.</h3>
+    <h3> Пока никаких моделей нет. Создать новую можно во вкладках, соответствующих типу желаемой модели.</h3>
 {% endif %}
 {% for i, params in models.items() %}
     <a href="models/{{i}}" style="text-decoration:none"><div class="button">{{i}}: {{params['name']}} </div></a>
