@@ -10,6 +10,14 @@ predict(X, y) -> pred
 fit(X, y, X_val, y_val)<br>
 predict(X, y) -> pred
 <h2>Работа с приложением</h2>
+1. Сборка докер образа:
+```bash
+docker build -t server:1 .
+```
+2. Запуск сервера:
+```bash
+docker run -p 5000:5000 -i server:1
+```
 <h2> Файлы </h2>
 <p>src - исходники с веб-приложением и алгоритмами.</p>
 <p>scripts - скрипты для сборки и запуска контейнера docker</p>

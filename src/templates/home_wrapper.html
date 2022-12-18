@@ -1,0 +1,16 @@
+{% extends 'wrapper.html' %}
+
+{% block title %}
+    Ensembles
+{% endblock title %}
+
+{% block wrap %}
+    <nav class="navbar tab">
+        <span class="nav-item"><a href="/home" >Home</a></span>
+        <span class="nav-item"><a href="/random_forest" >Random Forest</a></span>
+        <span class="nav-item"><a href="/gradient_boosting" >Gradient Boosting</a></span>
+        <span class="nav-item"><a href="/models" >Models</a></span>
+        <span class="nav-item"><a href="/about" >About</a></span>
+    </nav>
+    {% block content %}{% endblock content %}
+{% endblock wrap %}

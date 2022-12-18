@@ -54,10 +54,11 @@ class RandomForestMSE:
             tree = DecisionTreeRegressor(max_depth=self.max_depth, max_features=self.feature_subsample_size,
                                          **self.trees_params)
             # random subsample
-            idx = np.unique(np.random.randint(0, n_objects, n_objects))
+            idx = np.random.randint(0, n_objects, n_objects)
 
             # train model
             tree.fit(X[idx], y[idx])
+            self.trees.append(tree)
             self.dt.append(time() - t0)
             # val score
             if X_val is not None:
@@ -88,7 +89,7 @@ class RandomForestMSE:
         y : numpy ndarray
             Array of size n_objects
         """
-        pred = np.zeros(X.shape[1])
+        pred = np.zeros(X.shape[0])
         for tree in self.trees:
             pred += tree.predict(X)
         return pred / len(self.trees)
@@ -146,7 +147,7 @@ class GradientBoostingMSE:
                                          **self.trees_params)
 
             # random subsample
-            idx = np.unique(np.random.randint(0, n_objects, n_objects))
+            idx = np.random.randint(0, n_objects, n_objects)
 
             if i == 0:  # initial approximation
                 tree.fit(X[idx], y[idx])
@@ -196,7 +197,7 @@ class GradientBoostingMSE:
         y : numpy ndarray
             Array of size n_objects
         """
-        pred = np.zeros(X.shape[1])
+        pred = np.zeros(X.shape[0])
         for tree, w in zip(self.trees, self.w):
             pred += tree.predict(X) * w
         return pred
